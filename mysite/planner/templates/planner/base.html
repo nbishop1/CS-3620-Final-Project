@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title|default:"Digital Planner" }}</title>
+    <style>
+        :root {
+            --bg: #f4f7fb;
+            --surface: #ffffff;
+            --primary: #24457a;
+            --primary-soft: #dce7f7;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --error: #b91c1c;
+            --border: #d1d5db;
+            --bg-accent: #eef4ff;
+        }
+
+        body.theme-sky {
+            --bg: #f4f7fb;
+            --surface: #ffffff;
+            --primary: #24457a;
+            --primary-soft: #dce7f7;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --border: #d1d5db;
+            --bg-accent: #eef4ff;
+        }
+
+        body.theme-forest {
+            --bg: #f1f7f1;
+            --surface: #fcfffc;
+            --primary: #1e5a3a;
+            --primary-soft: #d7ecde;
+            --text: #1f2a23;
+            --muted: #5f6f65;
+            --border: #c9dbcd;
+            --bg-accent: #e5f5e7;
+        }
+
+        body.theme-sunset {
+            --bg: #fff6ef;
+            --surface: #fffdfb;
+            --primary: #b14b1f;
+            --primary-soft: #f8ddcc;
+            --text: #33251d;
+            --muted: #7a6659;
+            --border: #ecd4c3;
+            --bg-accent: #ffe7d8;
+        }
+
+        body.theme-slate {
+            --bg: #f4f5f9;
+            --surface: #ffffff;
+            --primary: #37405a;
+            --primary-soft: #dbe0ed;
+            --text: #242935;
+            --muted: #666f80;
+            --border: #ced4e0;
+            --bg-accent: #e8ebf4;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at top left, var(--bg-accent), var(--bg));
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0.9rem 1.2rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .brand {
+            margin: 0;
+            color: var(--primary);
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+        }
+
+        .profile-access {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .profile-access a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 24px rgba(31, 41, 55, 0.06);
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        form p {
+            margin-bottom: 0.9rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.92rem;
+            margin-bottom: 0.3rem;
+            color: var(--text);
+        }
+
+        input,
+        select {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.65rem 0.7rem;
+            font-size: 0.95rem;
+            background: #fff;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            background: var(--primary);
+            color: #fff;
+            padding: 0.65rem 1rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .helper-link {
+            margin-top: 1rem;
+            color: var(--muted);
+        }
+
+        .helper-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .errorlist {
+            color: var(--error);
+            margin: 0.25rem 0 0.5rem;
+            padding-left: 1rem;
+            font-size: 0.88rem;
+        }
+
+        .content-shell {
+            max-width: 980px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        @media (max-width: 640px) {
+            .brand {
+                font-size: 1.05rem;
+            }
+
+            .profile-access {
+                font-size: 0.85rem;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="theme-{{ current_theme|default:'sky' }}">
+    <header class="navbar">
+        <h1 class="brand">Digital Planner</h1>
+        <div class="profile-access">
+            {% if request.user.is_authenticated %}
+            <span>Profile: {{ request.user.first_name|default:request.user.email }}</span>
+            <a href="{% url 'logout' %}">Logout</a>
+            {% else %}
+            <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'signup' %}">Create Account</a>
+            {% endif %}
+        </div>
+    </header>
+
+    {% block content %}{% endblock %}
+</body>
+
+</html>
