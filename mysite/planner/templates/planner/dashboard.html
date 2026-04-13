@@ -2,10 +2,208 @@
 
 {% block content %}
 <div class="content-shell">
-    <div class="card">
-        <h2>Dashboard</h2>
-        <p>Your planner dashboard is ready for content.</p>
-        <p>Selected theme: <strong>{{ request.user.profile.get_theme_display }}</strong></p>
+    <style>
+        .dashboard-date {
+            margin: 0 0 1.25rem;
+            color: var(--primary);
+            font-size: clamp(1.8rem, 5vw, 2.7rem);
+            line-height: 1.2;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+            gap: 1.25rem;
+        }
+
+        .dashboard-left {
+            display: grid;
+            gap: 1.25rem;
+            align-content: start;
+        }
+
+        .dashboard-section {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--surface);
+            padding: 1rem;
+        }
+
+        .dashboard-section h3 {
+            margin: 0 0 0.6rem;
+            color: var(--primary);
+            font-size: 1.05rem;
+        }
+
+        .dashboard-empty {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .calendar-wrapper {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--surface);
+            padding: 1rem;
+        }
+
+        .calendar-title {
+            margin: 0 0 0.8rem;
+            color: var(--primary);
+            font-size: 1.05rem;
+        }
+
+        .calendar-month-label {
+            margin: 0 0 0.8rem;
+            font-weight: 700;
+            color: var(--text);
+            text-align: center;
+        }
+
+        .calendar-weekdays,
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 0.35rem;
+        }
+
+        .calendar-grid {
+            grid-auto-rows: clamp(78px, 8vw, 110px);
+        }
+
+        .calendar-weekdays span {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .calendar-day {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            min-height: 0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-start;
+            padding: 0.4rem;
+            font-size: 0.9rem;
+            background: #fff;
+            color: var(--text);
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .calendar-day-number {
+            font-size: 0.85rem;
+            font-weight: 600;
+            line-height: 1;
+        }
+
+        .calendar-day.is-today {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        .calendar-day.is-today .calendar-day-number {
+            font-weight: 700;
+        }
+
+        .calendar-day.is-empty {
+            border-color: transparent;
+            background: transparent;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <h2 id="dashboard-date" class="dashboard-date">Today</h2>
+
+    <div class="dashboard-grid">
+        <div class="dashboard-left">
+            <section class="dashboard-section">
+                <h3>Today's Tasks</h3>
+                <p class="dashboard-empty">No Tasks</p>
+            </section>
+
+            <section class="dashboard-section">
+                <h3>Events</h3>
+                <p class="dashboard-empty">No Events</p>
+            </section>
+
+            <section class="dashboard-section">
+                <h3>Notes</h3>
+                <p class="dashboard-empty">No Notes</p>
+            </section>
+        </div>
+
+        <section class="calendar-wrapper" aria-label="Monthly calendar">
+            <h3 class="calendar-title">Full Calendar</h3>
+            <p id="calendar-month-label" class="calendar-month-label"></p>
+            <div class="calendar-weekdays" aria-hidden="true">
+                <span>Sun</span>
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+            </div>
+            <div id="calendar-grid" class="calendar-grid"></div>
+        </section>
     </div>
 </div>
+
+<script>
+    (function () {
+        const now = new Date();
+        const today = now.getDate();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const dateEl = document.getElementById('dashboard-date');
+        const monthEl = document.getElementById('calendar-month-label');
+        const gridEl = document.getElementById('calendar-grid');
+
+        dateEl.textContent = now.toLocaleDateString(undefined, {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+        });
+
+        monthEl.textContent = now.toLocaleDateString(undefined, {
+            month: 'long',
+            year: 'numeric'
+        });
+
+        const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+        for (let i = 0; i < firstDayIndex; i += 1) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'calendar-day is-empty';
+            gridEl.appendChild(emptyCell);
+        }
+
+        for (let day = 1; day <= daysInMonth; day += 1) {
+            const dayCell = document.createElement('div');
+            dayCell.className = 'calendar-day';
+            const dayNumber = document.createElement('span');
+            dayNumber.className = 'calendar-day-number';
+            dayNumber.textContent = String(day);
+
+            if (day === today) {
+                dayCell.classList.add('is-today');
+            }
+
+            dayCell.appendChild(dayNumber);
+            gridEl.appendChild(dayCell);
+        }
+    })();
+</script>
 {% endblock %}
