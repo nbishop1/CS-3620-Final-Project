@@ -45,3 +45,35 @@ class SignUpForm(forms.Form):
         )
         UserProfile.objects.create(user=user, theme=self.cleaned_data['theme'])
         return user
+
+
+class ProfileUpdateForm(forms.Form):
+    first_name = forms.CharField(max_length=150)
+    last_name = forms.CharField(max_length=150)
+    theme = forms.ChoiceField(choices=UserProfile.THEME_CHOICES)
+    profile_picture = forms.ImageField(required=False)
+    remove_profile_picture = forms.BooleanField(required=False)
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        self.fields['first_name'].initial = user.first_name
+        self.fields['last_name'].initial = user.last_name
+        self.fields['theme'].initial = profile.theme
+
+    def save(self):
+        profile, _ = UserProfile.objects.get_or_create(user=self.user)
+
+        self.user.first_name = self.cleaned_data['first_name']
+        self.user.last_name = self.cleaned_data['last_name']
+        self.user.save(update_fields=['first_name', 'last_name'])
+
+        profile.theme = self.cleaned_data['theme']
+        if self.cleaned_data['remove_profile_picture']:
+            profile.profile_picture = None
+        elif self.cleaned_data.get('profile_picture'):
+            profile.profile_picture = self.cleaned_data['profile_picture']
+        profile.save()
+
+        return self.user
