@@ -2,12 +2,393 @@
 
 {% block content %}
 <div class="content-shell">
-    <div class="card" style="max-width: 760px; margin: 0 auto;">
-        <h2>Add New Note</h2>
-        <p class="form-note">Note form placeholder for now.</p>
-        {% if selected_date %}
-        <p class="form-note">Selected date: {{ selected_date }}</p>
-        {% endif %}
+    <style>
+        .object-page-date-nav {
+            margin: 0 0 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .object-page-date {
+            margin: 0;
+            color: var(--primary);
+            font-size: clamp(1.8rem, 5vw, 2.7rem);
+            line-height: 1.2;
+            text-align: center;
+            flex: 1;
+        }
+
+        .date-arrow-link {
+            width: 2.35rem;
+            height: 2.35rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface);
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+        }
+
+        .date-arrow-link:hover {
+            background: var(--primary-soft);
+        }
+
+        .object-page-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 3fr) minmax(280px, 1fr);
+            gap: 1.25rem;
+            align-items: start;
+        }
+
+        .journal-card {
+            padding: 1.25rem;
+        }
+
+        .journal-form {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .journal-sheet {
+            background:
+                linear-gradient(to bottom, rgba(36, 69, 122, 0.14) 0, rgba(36, 69, 122, 0.14) 1px, transparent 1px, transparent 2.05rem),
+                linear-gradient(to right, rgba(177, 75, 31, 0.18) 0, rgba(177, 75, 31, 0.18) 1px, transparent 1px);
+            background-size: 100% 2.05rem, 100% 100%;
+            background-position: 0 3.5rem, 2.75rem 0;
+            background-repeat: repeat-y, no-repeat;
+            background-color: #fffefb;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.25rem 1.25rem 1.5rem 3.5rem;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        }
+
+        .journal-sheet-header {
+            border-bottom: 1px solid color-mix(in srgb, var(--border) 75%, #ffffff);
+            margin-bottom: 0.9rem;
+            padding-bottom: 0.7rem;
+        }
+
+        .journal-sheet-label {
+            margin: 0 0 0.2rem;
+            color: var(--muted);
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .journal-sheet-date {
+            margin: 0;
+            color: var(--text);
+            font-size: 1.12rem;
+            font-weight: 700;
+        }
+
+        .journal-textarea {
+            width: 100%;
+            min-height: 34rem;
+            border: none;
+            resize: vertical;
+            padding: 0;
+            margin: 0;
+            background: transparent;
+            color: var(--text);
+            font: inherit;
+            font-size: 1rem;
+            line-height: 2.05rem;
+        }
+
+        .journal-textarea:focus {
+            outline: none;
+        }
+
+        .journal-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .journal-submit {
+            justify-self: start;
+            min-width: 10rem;
+        }
+
+        .journal-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .journal-secondary-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 10rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--primary);
+            text-decoration: none;
+            padding: 0.65rem 1rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .journal-secondary-action:hover {
+            background: var(--primary-soft);
+        }
+
+        .journal-error-list {
+            margin: 0;
+            padding-left: 1rem;
+            color: var(--error);
+        }
+
+        .object-sidebar .card {
+            padding: 1rem;
+        }
+
+        .object-sidebar h3 {
+            margin: 0 0 0.85rem;
+            color: var(--primary);
+            font-size: 1.02rem;
+        }
+
+        .sidebar-form-row {
+            margin-bottom: 0.75rem;
+        }
+
+        .sidebar-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            margin-top: 0.2rem;
+        }
+
+        .sidebar-actions button {
+            padding: 0.52rem 0.8rem;
+            font-size: 0.9rem;
+        }
+
+        .clear-filters-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .clear-filters-link:hover {
+            text-decoration: underline;
+        }
+
+        .history-list {
+            margin: 0.85rem 0 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 0.65rem;
+        }
+
+        .history-item {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .history-item.is-selected {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 30%, #ffffff);
+        }
+
+        .history-link {
+            display: block;
+            padding: 0.7rem;
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .history-link:hover {
+            background: var(--primary-soft);
+        }
+
+        .history-item-date {
+            margin: 0 0 0.2rem;
+            color: var(--primary);
+            font-size: 0.84rem;
+            font-weight: 700;
+        }
+
+        .history-item-preview {
+            margin: 0;
+            color: var(--text);
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+
+        .history-item-meta {
+            margin: 0.45rem 0 0;
+            color: var(--muted);
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 1000px) {
+            .object-page-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <div class="object-page-date-nav" aria-label="Date navigation">
+        <a class="date-arrow-link" href="{% url 'note-create' %}?date={{ selected_date_prev }}"
+            aria-label="Previous day">&lsaquo;</a>
+        <h2 class="object-page-date">{{ selected_date_display }}</h2>
+        <a class="date-arrow-link" href="{% url 'note-create' %}?date={{ selected_date_next }}"
+            aria-label="Next day">&rsaquo;</a>
+    </div>
+
+    <div class="object-page-layout">
+        <section class="card journal-card" aria-label="Note editor">
+            <h2>
+                {% if selected_note %}
+                Edit Note
+                {% else %}
+                New Journal Entry
+                {% endif %}
+            </h2>
+            <form method="post" class="journal-form">
+                {% csrf_token %}
+                <input type="hidden" name="selected_date" value="{{ selected_date }}">
+                <input type="hidden" name="note_id" value="{{ selected_note_id }}">
+
+                {% if note_form.non_field_errors %}
+                <ul class="journal-error-list">
+                    {% for error in note_form.non_field_errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
+                {% if note_form.content.errors %}
+                <ul class="journal-error-list">
+                    {% for error in note_form.content.errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
+                <div class="journal-sheet">
+                    <div class="journal-sheet-header">
+                        <p class="journal-sheet-label">Journal Date</p>
+                        <p class="journal-sheet-date">{{ selected_date_display }}</p>
+                    </div>
+
+                    <textarea id="id_content" name="content" class="journal-textarea" maxlength="8000"
+                        placeholder="New note...">{{ note_form.content.value|default:'' }}</textarea>
+                </div>
+
+                <div class="journal-actions">
+                    <button class="journal-submit" type="submit">
+                        {% if selected_note %}
+                        Save Changes
+                        {% else %}
+                        Save Note
+                        {% endif %}
+                    </button>
+                    <a class="journal-secondary-action" href="{% url 'note-create' %}?date={{ selected_date }}">New
+                        Note</a>
+                </div>
+            </form>
+        </section>
+
+        <aside class="object-sidebar" aria-label="Previous notes and filters">
+            <div class="card">
+                <h3>Previous Notes</h3>
+                <form method="get">
+                    <div class="sidebar-form-row">
+                        <label for="note-keyword">Keyword Search</label>
+                        <input id="note-keyword" name="keyword" type="text" placeholder="Search notes"
+                            value="{{ request.GET.keyword|default:'' }}">
+                    </div>
+                    <div class="sidebar-form-row">
+                        <label for="note-start-date">Start Date</label>
+                        <input id="note-start-date" name="start_date" type="date"
+                            value="{{ request.GET.start_date|default:'' }}">
+                    </div>
+                    <div class="sidebar-form-row">
+                        <label for="note-end-date">End Date</label>
+                        <input id="note-end-date" name="end_date" type="date"
+                            value="{{ request.GET.end_date|default:'' }}">
+                    </div>
+                    <div class="sidebar-form-row">
+                        <label for="note-sort">Sort By</label>
+                        <select id="note-sort" name="sort">
+                            <option value="newest" {{ sort_newest_selected }}>Newest (date)</option>
+                            <option value="oldest" {{ sort_oldest_selected }}>Oldest (date)
+                            </option>
+                            <option value="recent_edits" {{ sort_recent_edits_selected }}>
+                                Recent edits</option>
+                        </select>
+                    </div>
+                    <div class="sidebar-actions">
+                        <button type="submit">Apply</button>
+                        <a class="clear-filters-link" href="{% url 'note-create' %}?date={{ selected_date }}">Clear
+                            filters</a>
+                    </div>
+                </form>
+
+                <ul class="history-list" aria-label="Filtered note list">
+                    {% for note in notes %}
+                    <li
+                        class="history-item{% if selected_note and selected_note.pk == note.pk %} is-selected{% endif %}">
+                        <a class="history-link"
+                            href="{% url 'note-create' %}?date={{ note.note_date|date:'Y-m-d' }}&note={{ note.pk }}{% if note_filter_query %}&{{ note_filter_query }}{% endif %}">
+                            <p class="history-item-date">{{ note.note_date|date:"M j, Y" }}</p>
+                            <p class="history-item-preview">{{ note.content|truncatewords:18 }}</p>
+                            <p class="history-item-meta">Edited {{ note.updated_at|date:"M j, Y g:i A" }}</p>
+                        </a>
+                    </li>
+                    {% empty %}
+                    <li class="history-item">
+                        <div class="history-link">
+                            <p class="history-item-preview">No notes match the current filters yet.</p>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </aside>
     </div>
 </div>
+<script>
+    (function () {
+        const textarea = document.getElementById('id_content');
+        const wordCountEl = document.getElementById('note-word-count');
+
+        if (!textarea || !wordCountEl) {
+            return;
+        }
+
+        function updateWordCount() {
+            const text = textarea.value.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            wordCountEl.textContent = `${words} / 1000 words`;
+        }
+
+        textarea.addEventListener('input', updateWordCount);
+        updateWordCount();
+    })();
+</script>
 {% endblock %}

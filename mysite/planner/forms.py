@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 
-from .models import UserProfile
+from .models import Note, UserProfile
 
 
 class LoginForm(forms.Form):
@@ -77,3 +77,26 @@ class ProfileUpdateForm(forms.Form):
         profile.save()
 
         return self.user
+
+
+class NoteForm(forms.ModelForm):
+    class Meta:
+        model = Note
+        fields = ['content']
+        widgets = {
+            'content': forms.Textarea(
+                attrs={
+                    'rows': 16,
+                    'placeholder': 'Write your journal entry here...',
+                }
+            ),
+        }
+
+    def clean_content(self):
+        content = self.cleaned_data['content'].strip()
+        word_count = len(content.split())
+
+        if word_count > 1000:
+            raise forms.ValidationError('Notes are limited to 1,000 words.')
+
+        return content
