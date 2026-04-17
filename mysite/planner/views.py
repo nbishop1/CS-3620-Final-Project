@@ -33,6 +33,17 @@ def _get_user_avatar_initial(user):
 	return display_name[:1].upper() if display_name else ''
 
 
+def _build_authenticated_context(user, title):
+	profile = _get_or_create_profile(user)
+	return {
+		'title': title,
+		'current_theme': profile.theme,
+		'user_profile': profile,
+		'display_name': _get_user_display_name(user),
+		'avatar_initial': _get_user_avatar_initial(user),
+	}
+
+
 def login_view(request):
 	if request.user.is_authenticated:
 		return redirect('dashboard')
@@ -73,18 +84,7 @@ def signup_view(request):
 
 @login_required
 def dashboard_view(request):
-	profile = _get_or_create_profile(request.user)
-	return render(
-		request,
-		'planner/dashboard.html',
-		{
-			'title': 'Dashboard',
-			'current_theme': profile.theme,
-			'user_profile': profile,
-			'display_name': _get_user_display_name(request.user),
-			'avatar_initial': _get_user_avatar_initial(request.user),
-		},
-	)
+	return render(request, 'planner/dashboard.html', _build_authenticated_context(request.user, 'Dashboard'))
 
 
 @login_required
@@ -108,6 +108,27 @@ def profile_view(request):
 			'avatar_initial': _get_user_avatar_initial(request.user),
 		},
 	)
+
+
+@login_required
+def task_create_view(request):
+	context = _build_authenticated_context(request.user, 'Add Task')
+	context['selected_date'] = request.GET.get('date', '')
+	return render(request, 'planner/task_create.html', context)
+
+
+@login_required
+def event_create_view(request):
+	context = _build_authenticated_context(request.user, 'Add Event')
+	context['selected_date'] = request.GET.get('date', '')
+	return render(request, 'planner/event_create.html', context)
+
+
+@login_required
+def note_create_view(request):
+	context = _build_authenticated_context(request.user, 'Add Note')
+	context['selected_date'] = request.GET.get('date', '')
+	return render(request, 'planner/note_create.html', context)
 
 
 def logout_view(request):

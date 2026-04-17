@@ -1,6 +1,8 @@
 {% extends 'planner/base.html' %}
 
 {% block content %}
+{% now "Y-m-d" as today_date %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
 <div class="content-shell">
     <style>
         .dashboard-date {
@@ -40,6 +42,18 @@
             color: var(--muted);
         }
 
+        .dashboard-add-link {
+            display: inline-block;
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 600;
+            padding: 0.2rem 0;
+        }
+
+        .dashboard-add-link:hover {
+            text-decoration: underline;
+        }
+
         .calendar-wrapper {
             border: 1px solid var(--border);
             border-radius: 12px;
@@ -53,65 +67,82 @@
             font-size: 1.05rem;
         }
 
-        .calendar-month-label {
-            margin: 0 0 0.8rem;
-            font-weight: 700;
+        #dashboard-calendar {
+            min-height: 560px;
+        }
+
+        .fc {
+            --fc-border-color: var(--border);
+            --fc-page-bg-color: transparent;
+            --fc-neutral-bg-color: #fff;
+            --fc-today-bg-color: color-mix(in srgb, var(--primary) 18%, #ffffff);
+            --fc-event-bg-color: var(--primary);
+            --fc-event-border-color: var(--primary);
+            --fc-button-bg-color: var(--primary);
+            --fc-button-border-color: var(--primary);
+            --fc-button-hover-bg-color: color-mix(in srgb, var(--primary) 88%, #000000);
+            --fc-button-hover-border-color: color-mix(in srgb, var(--primary) 88%, #000000);
+            --fc-button-active-bg-color: color-mix(in srgb, var(--primary) 78%, #000000);
+            --fc-button-active-border-color: color-mix(in srgb, var(--primary) 78%, #000000);
+            --fc-today-text-color: var(--text);
+        }
+
+        .fc .fc-toolbar-title {
             color: var(--text);
-            text-align: center;
+            font-size: clamp(1rem, 2.2vw, 1.35rem);
         }
 
-        .calendar-weekdays,
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, minmax(0, 1fr));
-            gap: 0.35rem;
-        }
-
-        .calendar-grid {
-            grid-auto-rows: clamp(78px, 8vw, 110px);
-        }
-
-        .calendar-weekdays span {
-            text-align: center;
-            color: var(--muted);
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .calendar-day {
-            border: 1px solid var(--border);
+        .fc .fc-button {
             border-radius: 8px;
-            min-height: 0;
-            display: flex;
-            align-items: flex-start;
-            justify-content: flex-start;
-            padding: 0.4rem;
-            font-size: 0.9rem;
-            background: #fff;
-            color: var(--text);
-            overflow: hidden;
-            min-width: 0;
-        }
-
-        .calendar-day-number {
-            font-size: 0.85rem;
+            box-shadow: none;
             font-weight: 600;
-            line-height: 1;
         }
 
-        .calendar-day.is-today {
-            background: var(--primary);
-            color: #fff;
-            border-color: var(--primary);
+        .fc-theme-standard td,
+        .fc-theme-standard th {
+            border-color: var(--border);
         }
 
-        .calendar-day.is-today .calendar-day-number {
-            font-weight: 700;
+        .fc .fc-daygrid-day {
+            cursor: pointer;
         }
 
-        .calendar-day.is-empty {
-            border-color: transparent;
-            background: transparent;
+        .day-action-popup {
+            position: fixed;
+            z-index: 40;
+            width: min(260px, 88vw);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: 0 12px 24px rgba(31, 41, 55, 0.18);
+            padding: 0.55rem;
+        }
+
+        .day-action-popup[hidden] {
+            display: none;
+        }
+
+        .day-action-popup-header {
+            font-size: 0.88rem;
+            color: var(--muted);
+            margin: 0 0 0.45rem;
+            padding: 0 0.2rem;
+        }
+
+        .day-action-link {
+            display: block;
+            width: 100%;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text);
+            padding: 0.52rem 0.65rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .day-action-link:hover {
+            background: var(--primary-soft);
+            color: var(--primary);
         }
 
         @media (max-width: 900px) {
@@ -127,47 +158,125 @@
         <div class="dashboard-left">
             <section class="dashboard-section">
                 <h3>Today's Tasks</h3>
-                <p class="dashboard-empty">No Tasks</p>
+                <a class="dashboard-add-link" href="{% url 'task-create' %}?date={{ today_date }}">+ Add Task</a>
             </section>
 
             <section class="dashboard-section">
                 <h3>Events</h3>
-                <p class="dashboard-empty">No Events</p>
+                <a class="dashboard-add-link" href="{% url 'event-create' %}?date={{ today_date }}">+ Add Event</a>
             </section>
 
             <section class="dashboard-section">
                 <h3>Notes</h3>
-                <p class="dashboard-empty">No Notes</p>
+                <a class="dashboard-add-link" href="{% url 'note-create' %}?date={{ today_date }}">+ Add Note</a>
             </section>
         </div>
 
         <section class="calendar-wrapper" aria-label="Monthly calendar">
             <h3 class="calendar-title">Full Calendar</h3>
-            <p id="calendar-month-label" class="calendar-month-label"></p>
-            <div class="calendar-weekdays" aria-hidden="true">
-                <span>Sun</span>
-                <span>Mon</span>
-                <span>Tue</span>
-                <span>Wed</span>
-                <span>Thu</span>
-                <span>Fri</span>
-                <span>Sat</span>
-            </div>
-            <div id="calendar-grid" class="calendar-grid"></div>
+            <div id="dashboard-calendar"></div>
         </section>
     </div>
 </div>
 
+<div id="day-action-popup" class="day-action-popup" hidden>
+    <p id="day-action-popup-header" class="day-action-popup-header">Selected date</p>
+    <a id="add-note-link" class="day-action-link" href="{% url 'note-create' %}">Add new note</a>
+    <a id="add-event-link" class="day-action-link" href="{% url 'event-create' %}">Add new event</a>
+    <a id="add-task-link" class="day-action-link" href="{% url 'task-create' %}">Add new task</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 <script>
     (function () {
         const now = new Date();
-        const today = now.getDate();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
 
         const dateEl = document.getElementById('dashboard-date');
-        const monthEl = document.getElementById('calendar-month-label');
-        const gridEl = document.getElementById('calendar-grid');
+        const calendarEl = document.getElementById('dashboard-calendar');
+        const popupEl = document.getElementById('day-action-popup');
+        const popupHeaderEl = document.getElementById('day-action-popup-header');
+        const addTaskLinkEl = document.getElementById('add-task-link');
+        const addEventLinkEl = document.getElementById('add-event-link');
+        const addNoteLinkEl = document.getElementById('add-note-link');
+
+        const taskBaseUrl = "{% url 'task-create' %}";
+        const eventBaseUrl = "{% url 'event-create' %}";
+        const noteBaseUrl = "{% url 'note-create' %}";
+
+        function closePopup() {
+            popupEl.hidden = true;
+        }
+
+        function positionPopup(clientX, clientY) {
+            const margin = 12;
+
+            popupEl.style.left = '0px';
+            popupEl.style.top = '0px';
+            popupEl.hidden = false;
+
+            const rect = popupEl.getBoundingClientRect();
+            let left = clientX;
+            let top = clientY;
+
+            if (left + rect.width + margin > window.innerWidth) {
+                left = window.innerWidth - rect.width - margin;
+            }
+
+            if (top + rect.height + margin > window.innerHeight) {
+                top = window.innerHeight - rect.height - margin;
+            }
+
+            if (left < margin) {
+                left = margin;
+            }
+
+            if (top < margin) {
+                top = margin;
+            }
+
+            popupEl.style.left = `${left}px`;
+            popupEl.style.top = `${top}px`;
+        }
+
+        function showPopup(info) {
+            const selectedDate = info.dateStr;
+            const formattedDate = info.date.toLocaleDateString(undefined, {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+
+            popupHeaderEl.textContent = `Selected: ${formattedDate}`;
+            addTaskLinkEl.href = `${taskBaseUrl}?date=${encodeURIComponent(selectedDate)}`;
+            addEventLinkEl.href = `${eventBaseUrl}?date=${encodeURIComponent(selectedDate)}`;
+            addNoteLinkEl.href = `${noteBaseUrl}?date=${encodeURIComponent(selectedDate)}`;
+
+            const dayRect = info.dayEl.getBoundingClientRect();
+            positionPopup(dayRect.left + 12, dayRect.top + 12);
+        }
+
+        document.addEventListener('click', function (event) {
+            if (popupEl.hidden) {
+                return;
+            }
+
+            const clickedInsidePopup = popupEl.contains(event.target);
+            const clickedDayCell = event.target.closest('.fc-daygrid-day');
+
+            if (!clickedInsidePopup && !clickedDayCell) {
+                closePopup();
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closePopup();
+            }
+        });
+
+        window.addEventListener('resize', closePopup);
+        window.addEventListener('scroll', closePopup, true);
 
         dateEl.textContent = now.toLocaleDateString(undefined, {
             weekday: 'long',
@@ -176,34 +285,25 @@
             year: 'numeric'
         });
 
-        monthEl.textContent = now.toLocaleDateString(undefined, {
-            month: 'long',
-            year: 'numeric'
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            initialDate: now,
+            height: 'auto',
+            fixedWeekCount: false,
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: ''
+            },
+            buttonText: {
+                today: 'Today'
+            },
+            dateClick: function (info) {
+                showPopup(info);
+            }
         });
 
-        const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
-        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-        for (let i = 0; i < firstDayIndex; i += 1) {
-            const emptyCell = document.createElement('div');
-            emptyCell.className = 'calendar-day is-empty';
-            gridEl.appendChild(emptyCell);
-        }
-
-        for (let day = 1; day <= daysInMonth; day += 1) {
-            const dayCell = document.createElement('div');
-            dayCell.className = 'calendar-day';
-            const dayNumber = document.createElement('span');
-            dayNumber.className = 'calendar-day-number';
-            dayNumber.textContent = String(day);
-
-            if (day === today) {
-                dayCell.classList.add('is-today');
-            }
-
-            dayCell.appendChild(dayNumber);
-            gridEl.appendChild(dayCell);
-        }
+        calendar.render();
     })();
 </script>
 {% endblock %}

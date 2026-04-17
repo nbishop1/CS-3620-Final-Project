@@ -1,0 +1,13 @@
+{% extends 'planner/base.html' %}
+
+{% block content %}
+<div class="content-shell">
+    <div class="card" style="max-width: 760px; margin: 0 auto;">
+        <h2>Add New Task</h2>
+        <p class="form-note">Task form placeholder for now.</p>
+        {% if selected_date %}
+        <p class="form-note">Selected date: {{ selected_date }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
