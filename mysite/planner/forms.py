@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 
-from .models import Note, UserProfile
+from .models import Event, Note, UserProfile
 
 
 class LoginForm(forms.Form):
@@ -100,3 +100,53 @@ class NoteForm(forms.ModelForm):
             raise forms.ValidationError('Notes are limited to 1,000 words.')
 
         return content
+
+
+class EventForm(forms.ModelForm):
+    class Meta:
+        model = Event
+        fields = ['name', 'color', 'is_all_day', 'start_date', 'end_date', 'start_time', 'end_time']
+        widgets = {
+            'name': forms.TextInput(attrs={'placeholder': 'Event name'}),
+            'is_all_day': forms.CheckboxInput(),
+            'start_date': forms.DateInput(attrs={'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'type': 'date'}),
+            'start_time': forms.TimeInput(attrs={'type': 'time'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time'}),
+        }
+
+    def clean_name(self):
+        return self.cleaned_data['name'].strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        is_all_day = cleaned_data.get('is_all_day')
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
+
+        if start_date and end_date and end_date < start_date:
+            self.add_error('end_date', 'End date must be on or after start date.')
+
+        if is_all_day:
+            cleaned_data['start_time'] = None
+            cleaned_data['end_time'] = None
+        else:
+            if not start_time:
+                self.add_error('start_time', 'Start time is required for timeframe events.')
+
+            if not end_time:
+                self.add_error('end_time', 'End time is required for timeframe events.')
+
+            if (
+                start_date
+                and end_date
+                and start_time
+                and end_time
+                and start_date == end_date
+                and end_time <= start_time
+            ):
+                self.add_error('end_time', 'End time must be after start time for same-day events.')
+
+        return cleaned_data

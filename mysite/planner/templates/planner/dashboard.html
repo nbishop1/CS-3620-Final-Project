@@ -62,6 +62,52 @@
             gap: 0.55rem;
         }
 
+        .dashboard-event-list {
+            margin: 0.75rem 0 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 0.55rem;
+        }
+
+        .dashboard-event-item {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .dashboard-event-link {
+            display: block;
+            padding: 0.65rem 0.75rem;
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .dashboard-event-link:hover {
+            background: var(--primary-soft);
+        }
+
+        .dashboard-event-name {
+            margin: 0 0 0.18rem;
+            color: var(--text);
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+
+        .dashboard-event-date {
+            margin: 0;
+            color: var(--primary);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .dashboard-event-time {
+            margin: 0.28rem 0 0;
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
         .dashboard-note-item {
             border: 1px solid var(--border);
             border-radius: 8px;
@@ -235,6 +281,8 @@
             <section class="dashboard-section">
                 <h3>Events</h3>
                 <a class="dashboard-add-link" href="{% url 'event-create' %}?date={{ today_date }}">+ Add Event</a>
+                <ul id="dashboard-event-list" class="dashboard-event-list" aria-label="Events for displayed month"></ul>
+                <p id="dashboard-event-empty" class="dashboard-empty" hidden>No Events</p>
             </section>
 
             <section class="dashboard-section">
@@ -267,6 +315,7 @@
 
 {{ note_dates|json_script:"dashboard-note-dates" }}
 {{ note_day_first_ids|json_script:"dashboard-note-day-first-ids" }}
+{{ calendar_events|json_script:"dashboard-calendar-events" }}
 
 <div id="day-action-popup" class="day-action-popup" hidden>
     <p id="day-action-popup-header" class="day-action-popup-header">Selected date</p>
@@ -287,12 +336,113 @@
         const addTaskLinkEl = document.getElementById('add-task-link');
         const addEventLinkEl = document.getElementById('add-event-link');
         const addNoteLinkEl = document.getElementById('add-note-link');
+        const eventListEl = document.getElementById('dashboard-event-list');
+        const eventEmptyEl = document.getElementById('dashboard-event-empty');
         const noteDates = new Set(JSON.parse(document.getElementById('dashboard-note-dates').textContent));
         const noteDayFirstIds = JSON.parse(document.getElementById('dashboard-note-day-first-ids').textContent);
+        const calendarEvents = JSON.parse(document.getElementById('dashboard-calendar-events').textContent);
 
         const taskBaseUrl = "{% url 'task-create' %}";
         const eventBaseUrl = "{% url 'event-create' %}";
         const noteBaseUrl = "{% url 'note-create' %}";
+
+        function formatDateRange(event) {
+            if (!event.start) {
+                return '';
+            }
+
+            const dateFormatter = new Intl.DateTimeFormat(undefined, {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+
+            if (event.allDay) {
+                const startDate = event.start;
+                const endDate = event.end ? new Date(event.end.getTime() - 86400000) : startDate;
+                const sameDay = startDate.toDateString() === endDate.toDateString();
+                return sameDay
+                    ? dateFormatter.format(startDate)
+                    : `${dateFormatter.format(startDate)} - ${dateFormatter.format(endDate)}`;
+            }
+
+            const startDate = event.start;
+            const endDate = event.end || event.start;
+            const sameDay = startDate.toDateString() === endDate.toDateString();
+            return sameDay
+                ? dateFormatter.format(startDate)
+                : `${dateFormatter.format(startDate)} - ${dateFormatter.format(endDate)}`;
+        }
+
+        function formatTimeframeForTooltip(event) {
+            if (event.allDay || !event.start || !event.end) {
+                return '';
+            }
+
+            const formatter = new Intl.DateTimeFormat(undefined, {
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+
+            return `${formatter.format(event.start)} - ${formatter.format(event.end)}`;
+        }
+
+        function renderDisplayedMonthEvents(view) {
+            if (!eventListEl || !eventEmptyEl) {
+                return;
+            }
+
+            const monthStart = view.currentStart;
+            const monthEnd = view.currentEnd;
+            const visibleEvents = calendar.getEvents()
+                .filter(function (event) {
+                    const eventStart = event.start;
+                    const eventEnd = event.end || event.start;
+                    return eventStart && eventStart < monthEnd && eventEnd >= monthStart;
+                })
+                .sort(function (left, right) {
+                    return left.start - right.start;
+                });
+
+            eventListEl.innerHTML = '';
+
+            if (!visibleEvents.length) {
+                eventEmptyEl.hidden = false;
+                return;
+            }
+
+            eventEmptyEl.hidden = true;
+
+            visibleEvents.forEach(function (event) {
+                const itemEl = document.createElement('li');
+                itemEl.className = 'dashboard-event-item';
+
+                const linkEl = document.createElement('a');
+                linkEl.className = 'dashboard-event-link';
+                linkEl.href = event.url || `${eventBaseUrl}?date=${encodeURIComponent(toDateKey(event.start))}`;
+
+                const nameEl = document.createElement('p');
+                nameEl.className = 'dashboard-event-name';
+                nameEl.textContent = event.title;
+
+                const dateEl = document.createElement('p');
+                dateEl.className = 'dashboard-event-date';
+                dateEl.textContent = formatDateRange(event);
+
+                linkEl.appendChild(nameEl);
+                linkEl.appendChild(dateEl);
+
+                if (!event.allDay) {
+                    const timeEl = document.createElement('p');
+                    timeEl.className = 'dashboard-event-time';
+                    timeEl.textContent = formatTimeframeForTooltip(event);
+                    linkEl.appendChild(timeEl);
+                }
+
+                itemEl.appendChild(linkEl);
+                eventListEl.appendChild(itemEl);
+            });
+        }
 
         function toDateKey(date) {
             const year = date.getFullYear();
@@ -388,6 +538,7 @@
             initialDate: now,
             height: 'auto',
             fixedWeekCount: false,
+            displayEventTime: false,
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
@@ -415,6 +566,16 @@
                     event.stopPropagation();
                 });
                 info.el.querySelector('.fc-daygrid-day-frame').appendChild(indicatorEl);
+            },
+            events: calendarEvents,
+            eventDidMount: function (info) {
+                const timeframe = formatTimeframeForTooltip(info.event);
+                if (timeframe) {
+                    info.el.title = `${info.event.title} (${timeframe})`;
+                }
+            },
+            datesSet: function (info) {
+                renderDisplayedMonthEvents(info.view);
             },
             dateClick: function (info) {
                 showPopup(info);

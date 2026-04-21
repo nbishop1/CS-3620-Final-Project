@@ -51,6 +51,32 @@
             padding: 1.25rem;
         }
 
+        .journal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .journal-header h2 {
+            margin: 0;
+        }
+
+        .journal-delete {
+            border: 1px solid color-mix(in srgb, var(--error) 45%, #ffffff);
+            background: color-mix(in srgb, var(--error) 10%, #ffffff);
+            color: var(--error);
+            padding: 0.5rem 0.8rem;
+            font-size: 0.86rem;
+            min-width: 0;
+            white-space: nowrap;
+        }
+
+        .journal-delete:hover {
+            background: color-mix(in srgb, var(--error) 18%, #ffffff);
+        }
+
         .journal-form {
             display: grid;
             gap: 1rem;
@@ -261,17 +287,26 @@
 
     <div class="object-page-layout">
         <section class="card journal-card" aria-label="Note editor">
-            <h2>
-                {% if selected_note %}
-                Edit Note
-                {% else %}
-                New Journal Entry
-                {% endif %}
-            </h2>
             <form method="post" class="journal-form">
                 {% csrf_token %}
                 <input type="hidden" name="selected_date" value="{{ selected_date }}">
                 <input type="hidden" name="note_id" value="{{ selected_note_id }}">
+
+                <div class="journal-header">
+                    <h2>
+                        {% if selected_note %}
+                        Edit Note
+                        {% else %}
+                        New Journal Entry
+                        {% endif %}
+                    </h2>
+                    {% if selected_note %}
+                    <button class="journal-delete" type="submit" name="action" value="delete"
+                        onclick="return confirm('Delete this note permanently?');">
+                        Delete Note
+                    </button>
+                    {% endif %}
+                </div>
 
                 {% if note_form.non_field_errors %}
                 <ul class="journal-error-list">

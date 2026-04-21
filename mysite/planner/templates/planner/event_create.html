@@ -1,6 +1,7 @@
 {% extends 'planner/base.html' %}
 
 {% block content %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
 <div class="content-shell">
     <style>
         .object-page-date-nav {
@@ -45,6 +46,165 @@
             grid-template-columns: minmax(0, 3fr) minmax(280px, 1fr);
             gap: 1.25rem;
             align-items: start;
+        }
+
+        .event-main {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .event-calendar-card {
+            padding: 1rem;
+        }
+
+        #events-calendar {
+            min-height: 420px;
+        }
+
+        .fc {
+            --fc-border-color: var(--border);
+            --fc-page-bg-color: transparent;
+            --fc-neutral-bg-color: #fff;
+            --fc-today-bg-color: color-mix(in srgb, var(--primary) 18%, #ffffff);
+            --fc-button-bg-color: var(--primary);
+            --fc-button-border-color: var(--primary);
+            --fc-button-hover-bg-color: color-mix(in srgb, var(--primary) 88%, #000000);
+            --fc-button-hover-border-color: color-mix(in srgb, var(--primary) 88%, #000000);
+            --fc-button-active-bg-color: color-mix(in srgb, var(--primary) 78%, #000000);
+            --fc-button-active-border-color: color-mix(in srgb, var(--primary) 78%, #000000);
+            --fc-today-text-color: var(--text);
+        }
+
+        .fc .fc-toolbar-title {
+            color: var(--text);
+            font-size: clamp(1rem, 2.1vw, 1.3rem);
+        }
+
+        .fc .fc-button {
+            border-radius: 8px;
+            box-shadow: none;
+            font-weight: 600;
+        }
+
+        .fc .fc-daygrid-day {
+            cursor: pointer;
+        }
+
+        .fc .fc-daygrid-event {
+            background: transparent;
+            border: none;
+            padding: 0 0.1rem;
+            font-weight: 700;
+        }
+
+        .event-editor-card {
+            padding: 1.25rem;
+        }
+
+        .event-form {
+            display: grid;
+            gap: 0.95rem;
+        }
+
+        .event-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .event-header h2 {
+            margin: 0;
+        }
+
+        .event-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem;
+        }
+
+        .event-field {
+            display: grid;
+            gap: 0.35rem;
+        }
+
+        .event-field.full {
+            grid-column: 1 / -1;
+        }
+
+        .event-field-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-top: 0.1rem;
+        }
+
+        .event-field-toggle input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            accent-color: var(--primary);
+        }
+
+        .event-time-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem;
+        }
+
+        .event-time-row[hidden] {
+            display: none;
+        }
+
+        .event-error-list {
+            margin: 0;
+            padding-left: 1rem;
+            color: var(--error);
+        }
+
+        .event-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .event-submit {
+            min-width: 9.5rem;
+        }
+
+        .event-secondary-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 9.5rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--primary);
+            text-decoration: none;
+            padding: 0.65rem 1rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .event-secondary-action:hover {
+            background: var(--primary-soft);
+        }
+
+        .event-delete {
+            border: 1px solid color-mix(in srgb, var(--error) 45%, #ffffff);
+            background: color-mix(in srgb, var(--error) 10%, #ffffff);
+            color: var(--error);
+            padding: 0.5rem 0.8rem;
+            font-size: 0.86rem;
+            min-width: 0;
+            white-space: nowrap;
+        }
+
+        .event-delete:hover {
+            background: color-mix(in srgb, var(--error) 18%, #ffffff);
         }
 
         .object-sidebar .card {
@@ -95,14 +255,57 @@
         .history-item {
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 0.65rem 0.7rem;
+            padding: 0;
             background: #fff;
+            overflow: hidden;
+        }
+
+        .history-item.is-selected {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 30%, #ffffff);
+        }
+
+        .history-link {
+            display: block;
+            padding: 0.72rem;
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .history-link:hover {
+            background: var(--primary-soft);
+        }
+
+        .history-item-name {
+            margin: 0 0 0.2rem;
+            color: var(--text);
+            font-size: 0.93rem;
+            font-weight: 700;
+        }
+
+        .history-item-date {
+            margin: 0;
+            color: var(--primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .history-item-meta {
+            margin: 0.45rem 0 0;
             color: var(--muted);
-            font-size: 0.9rem;
+            font-size: 0.8rem;
         }
 
         @media (max-width: 1000px) {
             .object-page-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .event-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .event-time-row {
                 grid-template-columns: 1fr;
             }
         }
@@ -117,10 +320,104 @@
     </div>
 
     <div class="object-page-layout">
-        <section class="card" aria-label="Event editor">
-            <h2>Add New Event</h2>
-            <p class="form-note">Event form placeholder for now</p>
-            <p class="form-note">Selected date: {{ selected_date }}</p>
+        <section class="event-main" aria-label="Event calendar and editor">
+            <div class="card event-calendar-card">
+                <div id="events-calendar"></div>
+            </div>
+
+            <div class="card event-editor-card">
+                <form method="post" class="event-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="selected_date" value="{{ selected_date }}">
+                    <input type="hidden" name="event_id" value="{{ selected_event_id }}">
+
+                    <div class="event-header">
+                        <h2>
+                            {% if selected_event %}
+                            Edit Event
+                            {% else %}
+                            New Event
+                            {% endif %}
+                        </h2>
+                        {% if selected_event %}
+                        <button class="event-delete" type="submit" name="action" value="delete"
+                            onclick="return confirm('Delete this event permanently?');">
+                            Delete Event
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    {% if event_form.non_field_errors %}
+                    <ul class="event-error-list">
+                        {% for error in event_form.non_field_errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+
+                    <div class="event-grid">
+                        <div class="event-field full">
+                            <label for="id_name">Event Name</label>
+                            {{ event_form.name }}
+                            {{ event_form.name.errors }}
+                        </div>
+
+                        <div class="event-field full">
+                            <label class="event-field-toggle" for="id_is_all_day">
+                                {{ event_form.is_all_day }}
+                                <span>All day event</span>
+                            </label>
+                            {{ event_form.is_all_day.errors }}
+                        </div>
+
+                        <div class="event-field">
+                            <label for="id_color">Text Color</label>
+                            {{ event_form.color }}
+                            {{ event_form.color.errors }}
+                        </div>
+
+                        <div></div>
+
+                        <div class="event-field">
+                            <label for="id_start_date">Start Date</label>
+                            {{ event_form.start_date }}
+                            {{ event_form.start_date.errors }}
+                        </div>
+
+                        <div class="event-field">
+                            <label for="id_end_date">End Date</label>
+                            {{ event_form.end_date }}
+                            {{ event_form.end_date.errors }}
+                        </div>
+
+                        <div id="event-time-row" class="event-time-row full" hidden>
+                            <div class="event-field">
+                                <label for="id_start_time">Start Time</label>
+                                {{ event_form.start_time }}
+                                {{ event_form.start_time.errors }}
+                            </div>
+
+                            <div class="event-field">
+                                <label for="id_end_time">End Time</label>
+                                {{ event_form.end_time }}
+                                {{ event_form.end_time.errors }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="event-actions">
+                        <button class="event-submit" type="submit">
+                            {% if selected_event %}
+                            Save Changes
+                            {% else %}
+                            Save Event
+                            {% endif %}
+                        </button>
+                        <a class="event-secondary-action" href="{% url 'event-create' %}?date={{ selected_date }}">New
+                            Event</a>
+                    </div>
+                </form>
+            </div>
         </section>
 
         <aside class="object-sidebar" aria-label="Previous events and filters">
@@ -154,15 +451,135 @@
                     </div>
                     <div class="sidebar-actions">
                         <button type="submit">Apply</button>
-                        <a class="clear-filters-link" href="{% url 'event-create' %}">Clear filters</a>
+                        <a class="clear-filters-link" href="{% url 'event-create' %}?date={{ selected_date }}">Clear
+                            filters</a>
                     </div>
                 </form>
 
                 <ul class="history-list" aria-label="Filtered event list">
-                    <li class="history-item">No events yet.</li>
+                    {% for event in events %}
+                    <li
+                        class="history-item{% if selected_event and selected_event.pk == event.pk %} is-selected{% endif %}">
+                        <a class="history-link"
+                            href="{% url 'event-create' %}?date={{ event.start_date|date:'Y-m-d' }}&event={{ event.pk }}{% if event_filter_query %}&{{ event_filter_query }}{% endif %}">
+                            <p class="history-item-name">{{ event.name }}</p>
+                            <p class="history-item-date">{{ event.start_date|date:"M j, Y" }} -
+                                {{ event.end_date|date:"M j, Y" }}</p>
+                            {% if not event.is_all_day and event.start_time and event.end_time %}
+                            <p class="history-item-meta">Time {{ event.start_time|time:"g:i A" }} -
+                                {{ event.end_time|time:"g:i A" }}</p>
+                            {% endif %}
+                            <p class="history-item-meta">Edited {{ event.updated_at|date:"M j, Y g:i A" }}</p>
+                        </a>
+                    </li>
+                    {% empty %}
+                    <li class="history-item">
+                        <div class="history-link">
+                            <p class="history-item-name">No events match the current filters yet.</p>
+                        </div>
+                    </li>
+                    {% endfor %}
                 </ul>
             </div>
         </aside>
     </div>
 </div>
+
+{{ event_calendar_events|json_script:"event-page-calendar-events" }}
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script>
+    (function () {
+        const calendarEl = document.getElementById('events-calendar');
+        if (!calendarEl) {
+            return;
+        }
+
+        const events = JSON.parse(document.getElementById('event-page-calendar-events').textContent);
+        const selectedDate = '{{ selected_date }}';
+        const baseUrl = "{% url 'event-create' %}";
+        const filterQuery = '{{ event_filter_query|escapejs }}';
+        const allDayInput = document.getElementById('id_is_all_day');
+        const timeRow = document.getElementById('event-time-row');
+        const startTimeInput = document.getElementById('id_start_time');
+        const endTimeInput = document.getElementById('id_end_time');
+
+        function formatTimeframeForTooltip(event) {
+            if (event.allDay || !event.start || !event.end) {
+                return '';
+            }
+
+            const formatter = new Intl.DateTimeFormat(undefined, {
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+
+            return `${formatter.format(event.start)} - ${formatter.format(event.end)}`;
+        }
+
+        function updateTimeFieldsVisibility() {
+            if (!allDayInput || !timeRow) {
+                return;
+            }
+
+            const isAllDay = allDayInput.checked;
+            timeRow.hidden = isAllDay;
+
+            if (startTimeInput) {
+                startTimeInput.disabled = isAllDay;
+            }
+
+            if (endTimeInput) {
+                endTimeInput.disabled = isAllDay;
+            }
+        }
+
+        if (allDayInput) {
+            allDayInput.addEventListener('change', updateTimeFieldsVisibility);
+            updateTimeFieldsVisibility();
+        }
+
+        function getDateTarget(dateStr) {
+            if (!filterQuery) {
+                return `${baseUrl}?date=${encodeURIComponent(dateStr)}`;
+            }
+
+            return `${baseUrl}?date=${encodeURIComponent(dateStr)}&${filterQuery}`;
+        }
+
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            initialDate: selectedDate,
+            height: 'auto',
+            fixedWeekCount: false,
+            displayEventTime: false,
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: ''
+            },
+            buttonText: {
+                today: 'Today'
+            },
+            events: events,
+            eventDidMount: function (info) {
+                const timeframe = formatTimeframeForTooltip(info.event);
+                if (timeframe) {
+                    info.el.title = `${info.event.title} (${timeframe})`;
+                }
+            },
+            dateClick: function (info) {
+                window.location.href = getDateTarget(info.dateStr);
+            },
+            eventClick: function (info) {
+                if (info.event.url) {
+                    info.jsEvent.preventDefault();
+                    window.location.href = info.event.url;
+                }
+            }
+        });
+
+        calendar.render();
+    })();
+</script>
 {% endblock %}

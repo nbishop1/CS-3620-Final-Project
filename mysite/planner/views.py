@@ -6,9 +6,10 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import redirect, render
+from django.urls import reverse
 
-from .forms import LoginForm, NoteForm, ProfileUpdateForm, SignUpForm
-from .models import Note, UserProfile
+from .forms import EventForm, LoginForm, NoteForm, ProfileUpdateForm, SignUpForm
+from .models import Event, Note, UserProfile
 
 
 def _get_or_create_profile(user):
@@ -121,6 +122,72 @@ def _build_note_filter_query(request):
 	return urlencode(query_data)
 
 
+def _build_event_list_query(user, request):
+	events = Event.objects.filter(user=user)
+	keyword = request.GET.get('keyword', '').strip()
+	start_date = _parse_optional_date(request.GET.get('start_date', '').strip())
+	end_date = _parse_optional_date(request.GET.get('end_date', '').strip())
+	sort_value = request.GET.get('sort', 'newest')
+
+	if keyword:
+		events = events.filter(Q(name__icontains=keyword))
+
+	if start_date:
+		events = events.filter(end_date__gte=start_date)
+
+	if end_date:
+		events = events.filter(start_date__lte=end_date)
+
+	if sort_value == 'oldest':
+		events = events.order_by('start_date', 'created_at')
+	elif sort_value == 'recent_edits':
+		events = events.order_by('-updated_at', '-created_at')
+	else:
+		events = events.order_by('-start_date', '-created_at')
+
+	return events
+
+
+def _build_event_filter_query(request):
+	query_data = {}
+	for key in ('keyword', 'start_date', 'end_date', 'sort'):
+		value = request.GET.get(key, '').strip()
+		if value:
+			query_data[key] = value
+
+	return urlencode(query_data)
+
+
+def _serialize_event_for_calendar(event, event_url=''):
+	if event.is_all_day:
+		serialized = {
+			'title': event.name,
+			'start': event.start_date.isoformat(),
+			'end': (event.end_date + timedelta(days=1)).isoformat(),
+			'allDay': True,
+			'textColor': event.color,
+			'backgroundColor': 'transparent',
+			'borderColor': 'transparent',
+		}
+	else:
+		start_dt = datetime.combine(event.start_date, event.start_time)
+		end_dt = datetime.combine(event.end_date, event.end_time)
+		serialized = {
+			'title': event.name,
+			'start': start_dt.isoformat(timespec='minutes'),
+			'end': end_dt.isoformat(timespec='minutes'),
+			'allDay': False,
+			'textColor': event.color,
+			'backgroundColor': 'transparent',
+			'borderColor': 'transparent',
+		}
+
+	if event_url:
+		serialized['url'] = event_url
+
+	return serialized
+
+
 def login_view(request):
 	if request.user.is_authenticated:
 		return redirect('dashboard')
@@ -176,6 +243,13 @@ def dashboard_view(request):
 	context['recent_notes'] = recent_notes
 	context['note_dates'] = sorted(note_day_first_ids.keys())
 	context['note_day_first_ids'] = note_day_first_ids
+	context['calendar_events'] = [
+		_serialize_event_for_calendar(
+			event,
+			f"{reverse('event-create')}?date={event.start_date.isoformat()}&event={event.pk}",
+		)
+		for event in Event.objects.filter(user=request.user)
+	]
 	return render(request, 'planner/dashboard.html', context)
 
 
@@ -215,6 +289,67 @@ def event_create_view(request):
 	context = _build_authenticated_context(request.user, 'Add Event')
 	_apply_selected_date_context(context, request)
 	_apply_sort_filter_context(context, request)
+	event_filter_query = _build_event_filter_query(request)
+	selected_event = None
+	selected_event_id = request.GET.get('event', '').strip()
+
+	if selected_event_id:
+		try:
+			selected_event = Event.objects.get(pk=selected_event_id, user=request.user)
+		except (Event.DoesNotExist, ValueError):
+			raise Http404('Event not found.')
+
+	if request.method == 'POST':
+		posted_event_id = request.POST.get('event_id', '').strip()
+		if posted_event_id:
+			try:
+				selected_event = Event.objects.get(pk=posted_event_id, user=request.user)
+			except (Event.DoesNotExist, ValueError):
+				raise Http404('Event not found.')
+
+		selected_date_value = _parse_optional_date(request.POST.get('selected_date', '')) or date.today()
+		if request.POST.get('action') == 'delete':
+			if selected_event:
+				selected_event.delete()
+			redirect_query = {'date': selected_date_value.isoformat()}
+			if event_filter_query:
+				return redirect(f"{request.path}?{urlencode(redirect_query)}&{event_filter_query}")
+			return redirect(f"{request.path}?{urlencode(redirect_query)}")
+
+		event_form = EventForm(request.POST, instance=selected_event)
+		if event_form.is_valid():
+			event = event_form.save(commit=False)
+			event.user = request.user
+			event.save()
+			redirect_query = {'date': event.start_date.isoformat(), 'event': str(event.pk)}
+			if event_filter_query:
+				return redirect(f"{request.path}?{urlencode(redirect_query)}&{event_filter_query}")
+			return redirect(f"{request.path}?{urlencode(redirect_query)}")
+	else:
+		selected_date_value = _parse_optional_date(context['selected_date']) or date.today()
+		if selected_event:
+			event_form = EventForm(instance=selected_event)
+		else:
+			event_form = EventForm(
+				initial={
+					'is_all_day': True,
+					'start_date': selected_date_value,
+					'end_date': selected_date_value,
+				}
+			)
+
+	context['event_form'] = event_form
+	context['events'] = _build_event_list_query(request.user, request)
+	context['selected_event'] = selected_event
+	context['selected_event_id'] = str(selected_event.pk) if selected_event else ''
+	context['event_filter_query'] = event_filter_query
+	context['event_calendar_events'] = [
+		_serialize_event_for_calendar(
+			event,
+			f"{request.path}?date={event.start_date.isoformat()}&event={event.pk}{'&' + event_filter_query if event_filter_query else ''}",
+		)
+		for event in Event.objects.filter(user=request.user)
+	]
 	return render(request, 'planner/event_create.html', context)
 
 
@@ -223,6 +358,7 @@ def note_create_view(request):
 	context = _build_authenticated_context(request.user, 'Add Note')
 	_apply_selected_date_context(context, request)
 	_apply_sort_filter_context(context, request)
+	note_filter_query = _build_note_filter_query(request)
 	selected_note = None
 	selected_note_id = request.GET.get('note', '').strip()
 
@@ -240,13 +376,24 @@ def note_create_view(request):
 			except (Note.DoesNotExist, ValueError):
 				raise Http404('Note not found.')
 
+		selected_date_value = _parse_optional_date(request.POST.get('selected_date', '')) or date.today()
+		if request.POST.get('action') == 'delete':
+			if selected_note:
+				selected_note.delete()
+			redirect_query = {'date': selected_date_value.isoformat()}
+			if note_filter_query:
+				return redirect(f"{request.path}?{urlencode(redirect_query)}&{note_filter_query}")
+			return redirect(f"{request.path}?{urlencode(redirect_query)}")
+
 		note_form = NoteForm(request.POST, instance=selected_note)
 		if note_form.is_valid():
 			note = note_form.save(commit=False)
 			note.user = request.user
-			note.note_date = _parse_optional_date(request.POST.get('selected_date', '')) or date.today()
+			note.note_date = selected_date_value
 			note.save()
 			redirect_query = {'date': note.note_date.isoformat(), 'note': str(note.pk)}
+			if note_filter_query:
+				return redirect(f"{request.path}?{urlencode(redirect_query)}&{note_filter_query}")
 			return redirect(f"{request.path}?{urlencode(redirect_query)}")
 	else:
 		note_form = NoteForm(instance=selected_note)
@@ -256,7 +403,7 @@ def note_create_view(request):
 	context['notes'] = notes
 	context['selected_note'] = selected_note
 	context['selected_note_id'] = str(selected_note.pk) if selected_note else ''
-	context['note_filter_query'] = _build_note_filter_query(request)
+	context['note_filter_query'] = note_filter_query
 	return render(request, 'planner/note_create.html', context)
 
 
