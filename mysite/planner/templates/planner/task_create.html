@@ -47,6 +47,171 @@
             align-items: start;
         }
 
+        .task-main {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .task-card {
+            padding: 1.25rem;
+        }
+
+        .task-form {
+            display: grid;
+            gap: 0.95rem;
+        }
+
+        .task-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .task-header h2 {
+            margin: 0;
+        }
+
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem;
+        }
+
+        .task-field {
+            display: grid;
+            gap: 0.35rem;
+        }
+
+        .task-field.full {
+            grid-column: 1 / -1;
+        }
+
+        .task-interval-row[hidden] {
+            display: none;
+        }
+
+        .task-error-list {
+            margin: 0;
+            padding-left: 1rem;
+            color: var(--error);
+        }
+
+        .task-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .task-secondary-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 9.5rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--primary);
+            text-decoration: none;
+            padding: 0.65rem 1rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .task-secondary-action:hover {
+            background: var(--primary-soft);
+        }
+
+        .task-danger-action {
+            border: 1px solid color-mix(in srgb, var(--error) 45%, #ffffff);
+            background: color-mix(in srgb, var(--error) 10%, #ffffff);
+            color: var(--error);
+            padding: 0.5rem 0.8rem;
+            font-size: 0.86rem;
+            min-width: 0;
+            white-space: nowrap;
+        }
+
+        .task-danger-action:hover {
+            background: color-mix(in srgb, var(--error) 18%, #ffffff);
+        }
+
+        .sections-card {
+            padding: 1rem;
+        }
+
+        .sections-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.9rem;
+        }
+
+        .section-box {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.75rem;
+            background: #fff;
+        }
+
+        .section-box h3 {
+            margin: 0 0 0.6rem;
+            color: var(--primary);
+            font-size: 0.96rem;
+        }
+
+        .task-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 0.55rem;
+        }
+
+        .task-item {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .task-link {
+            display: block;
+            padding: 0.62rem;
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .task-link:hover {
+            background: var(--primary-soft);
+        }
+
+        .task-item-title {
+            margin: 0;
+            color: var(--text);
+            font-size: 0.91rem;
+            font-weight: 700;
+        }
+
+        .task-item-meta {
+            margin: 0.25rem 0 0;
+            color: var(--muted);
+            font-size: 0.8rem;
+        }
+
+        .task-item-date {
+            margin: 0.2rem 0 0;
+            color: var(--primary);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .task-empty {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
         .object-sidebar .card {
             padding: 1rem;
         }
@@ -95,14 +260,52 @@
         .history-item {
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 0.65rem 0.7rem;
+            padding: 0;
             background: #fff;
+            overflow: hidden;
+        }
+
+        .history-link {
+            display: block;
+            padding: 0.72rem;
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .history-link:hover {
+            background: var(--primary-soft);
+        }
+
+        .history-item-title {
+            margin: 0;
+            color: var(--text);
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+
+        .history-item-meta {
+            margin: 0.35rem 0 0;
             color: var(--muted);
-            font-size: 0.9rem;
+            font-size: 0.82rem;
+        }
+
+        .history-item-date {
+            margin: 0.22rem 0 0;
+            color: var(--primary);
+            font-size: 0.82rem;
+            font-weight: 600;
         }
 
         @media (max-width: 1000px) {
             .object-page-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .task-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sections-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -117,15 +320,168 @@
     </div>
 
     <div class="object-page-layout">
-        <section class="card" aria-label="Task editor">
-            <h2>Add New Task</h2>
-            <p class="form-note">Task form placeholder for now.</p>
-            <p class="form-note">Selected date: {{ selected_date }}</p>
+        <section class="task-main" aria-label="Task editor and sections">
+            <div class="card task-card">
+                <form method="post" class="task-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="selected_date" value="{{ selected_date }}">
+                    <input type="hidden" name="task_id" value="{{ selected_task_id }}">
+
+                    <div class="task-header">
+                        <h2>
+                            {% if selected_task %}
+                            Edit Task
+                            {% else %}
+                            New Task
+                            {% endif %}
+                        </h2>
+                        {% if selected_task %}
+                        <button class="task-danger-action" type="submit" name="action" value="delete"
+                            onclick="return confirm('Delete this task permanently?');">
+                            Delete
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    {% if task_form.non_field_errors %}
+                    <ul class="task-error-list">
+                        {% for error in task_form.non_field_errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+
+                    <div class="task-grid">
+                        <div class="task-field full">
+                            <label for="id_title">Task Title</label>
+                            {{ task_form.title }}
+                            {{ task_form.title.errors }}
+                        </div>
+
+                        <div class="task-field">
+                            <label for="id_start_date">Due Date</label>
+                            {{ task_form.start_date }}
+                            {{ task_form.start_date.errors }}
+                        </div>
+
+                        <div class="task-field">
+                            <label for="id_repeat_type">Repeat</label>
+                            {{ task_form.repeat_type }}
+                            {{ task_form.repeat_type.errors }}
+                        </div>
+
+                        <div id="task-interval-row" class="task-field full task-interval-row" hidden>
+                            <label for="id_repeat_interval">Repeat Interval</label>
+                            {{ task_form.repeat_interval }}
+                            {{ task_form.repeat_interval.errors }}
+                        </div>
+                    </div>
+
+                    <div class="task-actions">
+                        <button type="submit">
+                            {% if selected_task %}
+                            Save Changes
+                            {% else %}
+                            Save Task
+                            {% endif %}
+                        </button>
+                        {% if selected_task %}
+                        <button type="submit" name="action" value="complete">Mark Complete</button>
+                        {% endif %}
+                        <a class="task-secondary-action" href="{% url 'task-create' %}?date={{ selected_date }}">New
+                            Task</a>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card sections-card">
+                <h2>Task Sections</h2>
+                <div class="sections-grid">
+                    <section class="section-box">
+                        <h3>Today</h3>
+                        <ul class="task-list">
+                            {% for task in today_tasks %}
+                            <li class="task-item">
+                                <a class="task-link"
+                                    href="{% url 'task-create' %}?date={{ task.due_date|date:'Y-m-d' }}&task={{ task.pk }}{% if task_filter_query %}&{{ task_filter_query }}{% endif %}">
+                                    <p class="task-item-title">{{ task.title }}</p>
+                                    <p class="task-item-meta">{{ task.get_repeat_summary }}</p>
+                                    <p class="task-item-date">Due {{ task.due_date|date:"M j, Y" }}</p>
+                                </a>
+                            </li>
+                            {% empty %}
+                            <li>
+                                <p class="task-empty">No tasks due today.</p>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+
+                    <section class="section-box">
+                        <h3>Scheduled</h3>
+                        <ul class="task-list">
+                            {% for task in scheduled_tasks %}
+                            <li class="task-item">
+                                <a class="task-link"
+                                    href="{% url 'task-create' %}?date={{ task.due_date|date:'Y-m-d' }}&task={{ task.pk }}{% if task_filter_query %}&{{ task_filter_query }}{% endif %}">
+                                    <p class="task-item-title">{{ task.title }}</p>
+                                    <p class="task-item-meta">{{ task.get_repeat_summary }}</p>
+                                    <p class="task-item-date">Due {{ task.due_date|date:"M j, Y" }}</p>
+                                </a>
+                            </li>
+                            {% empty %}
+                            <li>
+                                <p class="task-empty">No recurring tasks scheduled.</p>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+
+                    <section class="section-box">
+                        <h3>All</h3>
+                        <ul class="task-list">
+                            {% for task in all_tasks %}
+                            <li class="task-item">
+                                <a class="task-link"
+                                    href="{% url 'task-create' %}?date={{ task.due_date|date:'Y-m-d' }}&task={{ task.pk }}{% if task_filter_query %}&{{ task_filter_query }}{% endif %}">
+                                    <p class="task-item-title">{{ task.title }}</p>
+                                    <p class="task-item-meta">{{ task.get_repeat_summary }}</p>
+                                    <p class="task-item-date">Due {{ task.due_date|date:"M j, Y" }}</p>
+                                </a>
+                            </li>
+                            {% empty %}
+                            <li>
+                                <p class="task-empty">No active tasks.</p>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+
+                    <section class="section-box">
+                        <h3>Completed</h3>
+                        <ul class="task-list">
+                            {% for item in completed_tasks %}
+                            <li class="task-item">
+                                <div class="task-link">
+                                    <p class="task-item-title">{{ item.title_snapshot }}</p>
+                                    <p class="task-item-date">Was due {{ item.completed_due_date|date:"M j, Y" }}</p>
+                                    <p class="task-item-meta">Completed {{ item.completed_at|date:"M j, Y g:i A" }}</p>
+                                </div>
+                            </li>
+                            {% empty %}
+                            <li>
+                                <p class="task-empty">No completed tasks yet.</p>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+                </div>
+            </div>
         </section>
 
         <aside class="object-sidebar" aria-label="Previous tasks and filters">
             <div class="card">
-                <h3>Previous Tasks</h3>
+                <h3>Task Search</h3>
                 <form method="get">
                     <div class="sidebar-form-row">
                         <label for="task-keyword">Keyword Search</label>
@@ -154,15 +510,56 @@
                     </div>
                     <div class="sidebar-actions">
                         <button type="submit">Apply</button>
-                        <a class="clear-filters-link" href="{% url 'task-create' %}">Clear filters</a>
+                        <a class="clear-filters-link" href="{% url 'task-create' %}?date={{ selected_date }}">Clear
+                            filters</a>
                     </div>
                 </form>
 
                 <ul class="history-list" aria-label="Filtered task list">
-                    <li class="history-item">No tasks yet.</li>
+                    {% for task in tasks %}
+                    <li class="history-item">
+                        <a class="history-link"
+                            href="{% url 'task-create' %}?date={{ task.due_date|date:'Y-m-d' }}&task={{ task.pk }}{% if task_filter_query %}&{{ task_filter_query }}{% endif %}">
+                            <p class="history-item-title">{{ task.title }}</p>
+                            <p class="history-item-meta">{{ task.get_repeat_summary }}</p>
+                            <p class="history-item-date">Due {{ task.due_date|date:"M j, Y" }}</p>
+                        </a>
+                    </li>
+                    {% empty %}
+                    <li class="history-item">
+                        <div class="history-link">
+                            <p class="history-item-title">No active tasks match these filters.</p>
+                        </div>
+                    </li>
+                    {% endfor %}
                 </ul>
             </div>
         </aside>
     </div>
 </div>
+
+<script>
+    (function () {
+        const repeatTypeInput = document.getElementById('id_repeat_type');
+        const intervalRow = document.getElementById('task-interval-row');
+        const intervalInput = document.getElementById('id_repeat_interval');
+
+        if (!repeatTypeInput || !intervalRow || !intervalInput) {
+            return;
+        }
+
+        function updateIntervalVisibility() {
+            const value = repeatTypeInput.value;
+            const needsInterval = value === 'every_n_days' || value === 'every_n_months';
+            intervalRow.hidden = !needsInterval;
+
+            if (!needsInterval) {
+                intervalInput.value = '1';
+            }
+        }
+
+        repeatTypeInput.addEventListener('change', updateIntervalVisibility);
+        updateIntervalVisibility();
+    })();
+</script>
 {% endblock %}

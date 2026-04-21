@@ -62,6 +62,116 @@
             gap: 0.55rem;
         }
 
+        .dashboard-task-filters {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            margin: 0.65rem 0 0;
+            flex-wrap: wrap;
+        }
+
+        .dashboard-task-filter {
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: #fff;
+            color: var(--text);
+            padding: 0.32rem 0.68rem;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .dashboard-task-filter.is-active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+
+        .dashboard-task-list {
+            margin: 0.7rem 0 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 0.55rem;
+        }
+
+        .dashboard-task-item {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .dashboard-task-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: stretch;
+        }
+
+        .dashboard-task-link {
+            display: block;
+            padding: 0.6rem 0.72rem;
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .dashboard-task-link:hover {
+            background: var(--primary-soft);
+        }
+
+        .dashboard-task-title {
+            margin: 0;
+            color: var(--text);
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .dashboard-task-meta {
+            margin: 0.2rem 0 0;
+            color: var(--muted);
+            font-size: 0.79rem;
+        }
+
+        .dashboard-task-date {
+            margin: 0.22rem 0 0;
+            color: var(--primary);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .dashboard-task-complete-form {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 0.56rem 0 0.22rem;
+            border-left: 1px solid var(--border);
+            background: #fff;
+        }
+
+        .dashboard-task-complete {
+            width: 1.1rem;
+            height: 1.1rem;
+            border-radius: 999px;
+            border: 2px solid var(--primary);
+            background: transparent;
+            padding: 0;
+            min-width: 0;
+            cursor: pointer;
+        }
+
+        .dashboard-task-complete:hover {
+            background: color-mix(in srgb, var(--primary) 22%, #ffffff);
+        }
+
+        .dashboard-task-complete:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        .dashboard-task-panel[hidden] {
+            display: none;
+        }
+
         .dashboard-event-list {
             margin: 0.75rem 0 0;
             padding: 0;
@@ -224,6 +334,22 @@
             border-radius: 4px;
         }
 
+        .calendar-task-indicator {
+            position: absolute;
+            right: 2.72rem;
+            bottom: 0.16rem;
+            color: var(--primary);
+            font-size: 0.72rem;
+            font-weight: 700;
+            line-height: 1;
+            z-index: 2;
+            pointer-events: none;
+            white-space: nowrap;
+            background: color-mix(in srgb, var(--surface) 88%, transparent);
+            border-radius: 6px;
+            padding: 0.06rem 0.24rem;
+        }
+
         .day-action-popup {
             position: fixed;
             z-index: 40;
@@ -276,6 +402,99 @@
             <section class="dashboard-section">
                 <h3>Today's Tasks</h3>
                 <a class="dashboard-add-link" href="{% url 'task-create' %}?date={{ today_date }}">+ Add Task</a>
+
+                <div class="dashboard-task-filters" role="tablist" aria-label="Task filter lists">
+                    <button type="button" class="dashboard-task-filter is-active" data-task-view="today">Today</button>
+                    <button type="button" class="dashboard-task-filter" data-task-view="scheduled">Scheduled</button>
+                    <button type="button" class="dashboard-task-filter" data-task-view="all">All</button>
+                </div>
+
+                <div class="dashboard-task-panel" data-task-panel="today">
+                    {% if dashboard_tasks_today %}
+                    <ul class="dashboard-task-list">
+                        {% for task in dashboard_tasks_today %}
+                        <li class="dashboard-task-item">
+                            <div class="dashboard-task-row">
+                                <a class="dashboard-task-link"
+                                    href="{% url 'task-create' %}?date={{ task.due_date|date:'Y-m-d' }}&task={{ task.pk }}">
+                                    <p class="dashboard-task-title">{{ task.title }}</p>
+                                    <p class="dashboard-task-meta">{{ task.get_repeat_summary }}</p>
+                                    <p class="dashboard-task-date">Due {{ task.due_date|date:"M j, Y" }}</p>
+                                </a>
+                                <form method="post" class="dashboard-task-complete-form"
+                                    aria-label="Mark task complete">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="complete_task">
+                                    <input type="hidden" name="task_id" value="{{ task.pk }}">
+                                    <button type="submit" class="dashboard-task-complete" title="Mark complete"
+                                        aria-label="Mark {{ task.title }} complete"></button>
+                                </form>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="dashboard-empty">No Tasks</p>
+                    {% endif %}
+                </div>
+
+                <div class="dashboard-task-panel" data-task-panel="scheduled" hidden>
+                    {% if dashboard_tasks_scheduled %}
+                    <ul class="dashboard-task-list">
+                        {% for task in dashboard_tasks_scheduled %}
+                        <li class="dashboard-task-item">
+                            <div class="dashboard-task-row">
+                                <a class="dashboard-task-link"
+                                    href="{% url 'task-create' %}?date={{ task.due_date|date:'Y-m-d' }}&task={{ task.pk }}">
+                                    <p class="dashboard-task-title">{{ task.title }}</p>
+                                    <p class="dashboard-task-meta">{{ task.get_repeat_summary }}</p>
+                                    <p class="dashboard-task-date">Due {{ task.due_date|date:"M j, Y" }}</p>
+                                </a>
+                                <form method="post" class="dashboard-task-complete-form"
+                                    aria-label="Mark task complete">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="complete_task">
+                                    <input type="hidden" name="task_id" value="{{ task.pk }}">
+                                    <button type="submit" class="dashboard-task-complete" title="Mark complete"
+                                        aria-label="Mark {{ task.title }} complete"></button>
+                                </form>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="dashboard-empty">No Tasks</p>
+                    {% endif %}
+                </div>
+
+                <div class="dashboard-task-panel" data-task-panel="all" hidden>
+                    {% if dashboard_tasks_all %}
+                    <ul class="dashboard-task-list">
+                        {% for task in dashboard_tasks_all %}
+                        <li class="dashboard-task-item">
+                            <div class="dashboard-task-row">
+                                <a class="dashboard-task-link"
+                                    href="{% url 'task-create' %}?date={{ task.due_date|date:'Y-m-d' }}&task={{ task.pk }}">
+                                    <p class="dashboard-task-title">{{ task.title }}</p>
+                                    <p class="dashboard-task-meta">{{ task.get_repeat_summary }}</p>
+                                    <p class="dashboard-task-date">Due {{ task.due_date|date:"M j, Y" }}</p>
+                                </a>
+                                <form method="post" class="dashboard-task-complete-form"
+                                    aria-label="Mark task complete">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="complete_task">
+                                    <input type="hidden" name="task_id" value="{{ task.pk }}">
+                                    <button type="submit" class="dashboard-task-complete" title="Mark complete"
+                                        aria-label="Mark {{ task.title }} complete"></button>
+                                </form>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="dashboard-empty">No Tasks</p>
+                    {% endif %}
+                </div>
             </section>
 
             <section class="dashboard-section">
@@ -316,6 +535,7 @@
 {{ note_dates|json_script:"dashboard-note-dates" }}
 {{ note_day_first_ids|json_script:"dashboard-note-day-first-ids" }}
 {{ calendar_events|json_script:"dashboard-calendar-events" }}
+{{ task_day_counts|json_script:"dashboard-task-day-counts" }}
 
 <div id="day-action-popup" class="day-action-popup" hidden>
     <p id="day-action-popup-header" class="day-action-popup-header">Selected date</p>
@@ -338,13 +558,32 @@
         const addNoteLinkEl = document.getElementById('add-note-link');
         const eventListEl = document.getElementById('dashboard-event-list');
         const eventEmptyEl = document.getElementById('dashboard-event-empty');
+        const taskFilterButtons = document.querySelectorAll('.dashboard-task-filter');
+        const taskPanels = document.querySelectorAll('.dashboard-task-panel');
         const noteDates = new Set(JSON.parse(document.getElementById('dashboard-note-dates').textContent));
         const noteDayFirstIds = JSON.parse(document.getElementById('dashboard-note-day-first-ids').textContent);
         const calendarEvents = JSON.parse(document.getElementById('dashboard-calendar-events').textContent);
+        const taskDayCounts = JSON.parse(document.getElementById('dashboard-task-day-counts').textContent);
 
         const taskBaseUrl = "{% url 'task-create' %}";
         const eventBaseUrl = "{% url 'event-create' %}";
         const noteBaseUrl = "{% url 'note-create' %}";
+
+        function setTaskPanel(nextPanel) {
+            taskPanels.forEach(function (panel) {
+                panel.hidden = panel.dataset.taskPanel !== nextPanel;
+            });
+
+            taskFilterButtons.forEach(function (button) {
+                button.classList.toggle('is-active', button.dataset.taskView === nextPanel);
+            });
+        }
+
+        taskFilterButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                setTaskPanel(button.dataset.taskView);
+            });
+        });
 
         function formatDateRange(event) {
             if (!event.start) {
@@ -549,6 +788,15 @@
             },
             dayCellDidMount: function (info) {
                 const dayKey = toDateKey(info.date);
+                const frameEl = info.el.querySelector('.fc-daygrid-day-frame');
+
+                const taskCount = taskDayCounts[dayKey] || 0;
+                if (taskCount > 0) {
+                    const taskIndicatorEl = document.createElement('span');
+                    taskIndicatorEl.className = 'calendar-task-indicator';
+                    taskIndicatorEl.textContent = `To-do ${taskCount}`;
+                    frameEl.appendChild(taskIndicatorEl);
+                }
 
                 if (!noteDates.has(dayKey)) {
                     return;
@@ -565,7 +813,7 @@
                 indicatorEl.addEventListener('click', function (event) {
                     event.stopPropagation();
                 });
-                info.el.querySelector('.fc-daygrid-day-frame').appendChild(indicatorEl);
+                frameEl.appendChild(indicatorEl);
             },
             events: calendarEvents,
             eventDidMount: function (info) {

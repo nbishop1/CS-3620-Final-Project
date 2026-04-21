@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 
-from .models import Event, Note, UserProfile
+from .models import Event, Note, Task, UserProfile
 
 
 class LoginForm(forms.Form):
@@ -148,5 +148,33 @@ class EventForm(forms.ModelForm):
                 and end_time <= start_time
             ):
                 self.add_error('end_time', 'End time must be after start time for same-day events.')
+
+        return cleaned_data
+
+
+class TaskForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = ['title', 'start_date', 'repeat_type', 'repeat_interval']
+        widgets = {
+            'title': forms.TextInput(attrs={'placeholder': 'Task title'}),
+            'start_date': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def clean_title(self):
+        return self.cleaned_data['title'].strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        repeat_type = cleaned_data.get('repeat_type')
+        repeat_interval = cleaned_data.get('repeat_interval')
+
+        if repeat_type in (Task.REPEAT_EVERY_N_DAYS, Task.REPEAT_EVERY_N_MONTHS):
+            if not repeat_interval:
+                self.add_error('repeat_interval', 'Interval is required for this repeat type.')
+            elif repeat_interval < 1:
+                self.add_error('repeat_interval', 'Interval must be at least 1.')
+        else:
+            cleaned_data['repeat_interval'] = 1
 
         return cleaned_data
